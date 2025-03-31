@@ -1,0 +1,194 @@
+package code;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+
+public class DrawingApp extends JFrame {
+    private Color penColor = Color.BLACK; // Цвет пера по умолчанию
+    private float penThickness = 2.0f; // Толщина пера по умолчанию
+    private DrawingPanel drawingPanel;
+
+    public DrawingApp() {
+        setTitle("Приложение для рисования");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Создаем панель для управления цветом и толщиной
+        JPanel controlPanel = createControlPanel();
+
+        // Создаем панель для рисования
+        drawingPanel = new DrawingPanel();
+        drawingPanel.setPenColor(penColor);
+        drawingPanel.setPenThickness(penThickness);
+
+        // Добавляем обработчики выбора цвета и толщины
+        controlPanel.add(createColorChooser());
+        controlPanel.add(createThicknessChooser());
+
+        // Добавляем кнопку для ластика
+        controlPanel.add(createEraserButton());
+
+        // Добавляем компоненты в окно
+        add(controlPanel, BorderLayout.NORTH);
+        add(drawingPanel, BorderLayout.CENTER);
+    }
+
+    private JPanel createControlPanel() {
+        JPanel controlPanel = new JPanel();
+        controlPanel.setLayout(new FlowLayout());
+        return controlPanel;
+    }
+
+    private JComboBox<String> createColorChooser() {
+        // Массив цветов
+        Color[] colorOptions = {
+                Color.BLACK,
+                Color.RED,
+                Color.GREEN,
+                Color.BLUE,
+                Color.YELLOW,
+                new Color(128, 0, 128), // Фиолетовый
+                Color.ORANGE
+        };
+
+        // Массив названий цветов для отображения в ComboBox
+        String[] colorNames = {"Черный", "Красный", "Зеленый", "Синий", "Желтый", "Фиолетовый", "Оранжевый"};
+
+        JComboBox<String> colorComboBox = new JComboBox<>(colorNames);
+
+        // Анонимный класс для добавления обработчика события
+        colorComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Получаем выбранный цвет по индексу
+                penColor = colorOptions[colorComboBox.getSelectedIndex()];
+                drawingPanel.setPenColor(penColor); // Обновляем цвет пера на панели
+            }
+        });
+
+        return colorComboBox;
+    }
+
+    private JComboBox<String> createThicknessChooser() {
+        String[] thicknessOptions = {"min", "mean", "max"};
+        float[] thicknessValues = {2.0f, 5.0f, 15.0f}; // Массив значений толщины
+
+        JComboBox<String> thicknessComboBox = new JComboBox<>(thicknessOptions);
+        thicknessComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Получаем выбранную толщину по индексу
+                penThickness = thicknessValues[thicknessComboBox.getSelectedIndex()];
+                drawingPanel.setPenThickness(penThickness); // Обновляем толщину пера на панели
+            }
+        });
+        return thicknessComboBox;
+    }
+
+    private JButton createEraserButton() {
+        JButton eraserButton = new JButton("Ластик");
+        eraserButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                penColor = Color.WHITE; // Устанавливаем цвет пера в белый, чтобы стирать
+                drawingPanel.setPenColor(penColor); // Обновляем цвет пера на панели
+            }
+        });
+        return eraserButton;
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new DrawingApp().setVisible(true));
+    }
+}
+
+
+////////////////////////
+
+
+package code;
+
+//мой
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+
+public class DrawingPanel extends JPanel {
+    private Color penColor = Color.BLACK; // Цвет пера
+    private float penThickness = 2.0f; // Толщина пера
+    private ArrayList<Drawable> allDrawings = new ArrayList<>(); // Список для хранения всех рисунков
+
+    // Класс, который хранит точки и цвет для каждого рисунка
+    private static class Drawable {
+        ArrayList<Point> points;
+        Color color;
+        float thickness;
+
+        Drawable(ArrayList<Point> points, Color color, float thickness) {
+            this.points = points;
+            this.color = color;
+            this.thickness = thickness;
+        }
+    }
+
+    public DrawingPanel() {
+        setBackground(Color.WHITE); // Устанавливаем белый фон для холста
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                // Начинаем рисование нового рисунка
+                ArrayList<Point> points = new ArrayList<>();
+                points.add(e.getPoint()); // Добавляем первую точку нового рисования
+                // Создаем новый объект рисунка с выбранным цветом и толщиной
+                allDrawings.add(new Drawable(points, penColor, penThickness));
+            }
+        });
+
+        addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                // Получаем последний рисунок, к которому нужно добавить новую точку
+                Drawable currentDrawing = allDrawings.get(allDrawings.size() - 1);
+                currentDrawing.points.add(e.getPoint()); // Добавляем точку на холст
+                repaint(); // Перерисовываем панель
+            }
+        });
+    }
+
+    // Метод для рисования
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        // Преобразуем Graphics в Graphics2D для работы с толщиной линии
+        Graphics2D g2d = (Graphics2D) g;
+
+        // Рисуем все рисунки с их цветами и толщиной
+        for (Drawable drawing : allDrawings) {
+            g2d.setColor(drawing.color); // Устанавливаем цвет для текущего рисунка
+            // Устанавливаем толщину линии и закругленные концы
+            g2d.setStroke(new BasicStroke(drawing.thickness, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            for (int i = 1; i < drawing.points.size(); i++) {
+                Point p1 = drawing.points.get(i - 1);
+                Point p2 = drawing.points.get(i);
+                g2d.drawLine(p1.x, p1.y, p2.x, p2.y); // Рисуем линию между точками
+            }
+        }
+    }
+
+    // Методы для обновления состояния пера
+    public void setPenColor(Color color) {
+        this.penColor = color;
+    }
+
+    public void setPenThickness(float thickness) {
+        this.penThickness = thickness;
+    }
+}
