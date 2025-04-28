@@ -1,6 +1,6 @@
 package code;
 import java.util.*;
-
+import java.lang.*;
 import code.property.*;
 import code.smart.*;
 
